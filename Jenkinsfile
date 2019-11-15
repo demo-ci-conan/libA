@@ -5,7 +5,9 @@ def docker_runs = [:]  // [id] = [docker_image, profile]
 docker_runs["conanio-gcc8"] = ["conanio/gcc8", "conanio-gcc8"]
 docker_runs["conanio-gcc7"] = ["conanio/gcc7", "conanio-gcc7"]
 
-def user_channel = "sword/sorcery"
+def organization = "demo-ci-conan"
+def user_channel = "demo/testing"
+def config_url = "https://github.com/demo-ci-conan/settings.git"
 
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel) {
     return {
@@ -17,7 +19,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                 def lockfile = "${id}.lock"
 
                 try {
-                    client.run(command: "config install https://github.com/demo-ci-conan/settings.git")
+                    client.run(command: "config install ${config_url}".toString())
                     client.run(command: "config install -sf hooks -tf hooks https://github.com/conan-io/hooks.git")
                     client.remote.add server: server, repo: artifactory_repo, remoteName: remoteName, force: true
 
@@ -118,7 +120,7 @@ node {
                 //}
 
                 stage("Configure Conan client") {
-                    sh "conan config install -sf conan/config https://github.com/sword-and-sorcery/sword-and-sorcery.git"
+                    sh "conan config install ${config_url}".toString()
                 }
 
                 stage("Trigger dependents jobs") {
@@ -135,7 +137,7 @@ node {
                     echo "Full reference: '${reference}'"
 
                     // Trigger dependents jobs
-                    def organization = "sword-and-sorcery"
+                    
                     def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                     def sha1 = scmVars.GIT_COMMIT
 

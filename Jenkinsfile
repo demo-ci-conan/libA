@@ -104,37 +104,37 @@ node {
             }
         }
 
-        /*
+
         stage("Retrieve build info") {
             docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
-                def buildInfo = Artifactory.newBuildInfo()
-                String artifactory_credentials = "http://artifactory:8081/artifactory,admin,password"
-                def buildInfoFilename = "buildinfo.json"
+                // def buildInfo = Artifactory.newBuildInfo()
+                // String artifactory_credentials = "http://artifactory:8081/artifactory,admin,password"
+                // def buildInfoFilename = "buildinfo.json"
                 
-                // Install helper script (WIP)
-                git url: 'https://gist.github.com/a39acad525fd3e7e5315b2fa0bc70b6f.git'
-                sh 'pip install rtpy'
+                // // Install helper script (WIP)
+                // git url: 'https://gist.github.com/a39acad525fd3e7e5315b2fa0bc70b6f.git'
+                // sh 'pip install rtpy'
 
-                // Merge Build Info from nodes
-                String merge_bi_command = "python merge_buildinfo.py --output-file ${buildInfoFilename}"
+                // // Merge Build Info from nodes
+                // String merge_bi_command = "python merge_buildinfo.py --output-file ${buildInfoFilename}"
                 docker_runs.each { id, values ->
                     unstash id
-                    merge_bi_command += " ${id}.json"
+                    sh "cat ${id}.json"
                 }
-                sh merge_bi_command
+                //sh merge_bi_command
 
-                // Publish build info
-                String publish_command = "python publish_buildinfo.py --remote=${artifactory_credentials} ${buildInfoFilename}"
-                sh publish_command
+                // // Publish build info
+                // String publish_command = "python publish_buildinfo.py --remote=${artifactory_credentials} ${buildInfoFilename}"
+                // sh publish_command
 
-                stage("Publish build info") {
-                    String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password ${buildInfoFilename}"
-                    sh publish_build_info
-                }
+                // stage("Publish build info") {
+                //     String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password ${buildInfoFilename}"
+                //     sh publish_build_info
+                // }
 
             }
         }
-        */
+
         /*
         stage("Launch job-graph") {
             docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {

@@ -81,8 +81,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         */
                     }
                     finally {
-                        echo "DELETE DIR!!!!!!!!!"
-                        deleteDir()
+                        //deleteDir()
                     }
                 }
             }

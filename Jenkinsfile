@@ -55,12 +55,10 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             client.run(command: "search *".toString())
                             String create_build_info = "conan_build_info --v2 create --lockfile ${lockfile} --user admin --password password ${buildInfoFilename}"
                             sh create_build_info
+                            echo "Stash '${id}' -> '${buildInfoFilename}'"
+                            stash name: id, includes: "${buildInfoFilename}"                        
                         }
 
-                        stage("Publish build info") {
-                            String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password ${buildInfoFilename}"
-                            sh publish_build_info
-                        }
                         /*
                         stage("Compute build info") {
                             def buildInfo = Artifactory.newBuildInfo()
@@ -128,6 +126,12 @@ node {
                 // Publish build info
                 String publish_command = "python publish_buildinfo.py --remote=${artifactory_credentials} ${buildInfoFilename}"
                 sh publish_command
+
+                stage("Publish build info") {
+                    String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password ${buildInfoFilename}"
+                    sh publish_build_info
+                }
+
             }
         }
         */

@@ -43,12 +43,12 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         stage("Get dependencies and create app") {
                             String arguments = "--profile ${profile} --lockfile=${lockfile}"
                             client.run(command: "graph lock . ${arguments}".toString())
-                            client.run(command: "create --ignore-dirty . ${user_channel} ${arguments}".toString())
+                            client.run(command: "create . ${user_channel} ${arguments} --build missing".toString())
                             sh "cat ${lockfile}"
                         }
 
                         stage("Upload packages") {
-                            String uploadCommand = "upload ${repo_name}* --all -r ${remoteName} --confirm"
+                            String uploadCommand = "upload ${repo_name}* --all -r ${remoteName} --confirm  --force"
                             client.run(command: uploadCommand)
                         }
 

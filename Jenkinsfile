@@ -9,7 +9,7 @@ def organization = "demo-ci-conan"
 def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 
-def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel) {
+def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
     return {
         node {
             docker.image(docker_image).inside("--net=docker_jenkins_artifactory") {
@@ -74,7 +74,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
 
 def stages = [:]
 docker_runs.each { id, values ->
-    stages[id] = get_stages(id, values[0], artifactory_name, artifactory_repo, values[1], user_channel)
+    stages[id] = get_stages(id, values[0], artifactory_name, artifactory_repo, values[1], user_channel, config_url)
 }
 
 

@@ -58,7 +58,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         }
 
                         stage("Publish build info") {
-                            String publish_build_info = "conan_build_info --v2 publish --url http://host.docker.internal:8090/artifactory --user admin --password password ${buildInfoFilename}"
+                            String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password ${buildInfoFilename}"
                             sh publish_build_info
                         }
                         /*

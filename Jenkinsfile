@@ -123,8 +123,8 @@ node {
                     sh "cat ${id}.json"
                     if (last_info != "") {
                         sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
+                        sh "cat mergedbuildinfo.json"
                     }
-                    sh "cat mergedbuildinfo.json"
                     last_info = "${id}.json"
                 }
                 //sh merge_bi_command

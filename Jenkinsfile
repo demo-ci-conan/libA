@@ -120,6 +120,8 @@ node {
                 docker_runs.each { id, values ->
                     unstash id
                     sh "cat ${id}.json"
+                    sh "conan_build_info --v2 update ${id}.json mergedbuildinfo.json --output-file mergedbuildinfo.json"
+                    sh "cat mergedbuildinfo.json"
                 }
                 //sh merge_bi_command
 

@@ -117,11 +117,15 @@ node {
 
                 // // Merge Build Info from nodes
                 // String merge_bi_command = "python merge_buildinfo.py --output-file ${buildInfoFilename}"
+                def last_info = ""
                 docker_runs.each { id, values ->
                     unstash id
                     sh "cat ${id}.json"
-                    sh "conan_build_info --v2 update ${id}.json mergedbuildinfo.json --output-file mergedbuildinfo.json"
+                    if (last_info != "") {
+                        sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
+                    }
                     sh "cat mergedbuildinfo.json"
+                    last_info = "${id}.json"
                 }
                 //sh merge_bi_command
 

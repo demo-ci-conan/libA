@@ -20,8 +20,6 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                     def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
                     def remoteName = "artifactory-local"
                     def lockfile = "${id}.lock"
-                    sh "conan config home"
-                    client.run(command: "config home")
                     try {
                         client.run(command: "config install ${config_url}".toString())
                         client.run(command: "config install -sf hooks -tf hooks https://github.com/conan-io/hooks.git")
@@ -133,7 +131,7 @@ node {
             }
         }
         */
-
+        /*
         stage("Launch job-graph") {
             docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
                 def scmVars = checkout scm
@@ -178,7 +176,7 @@ node {
                     }
                 }
             }
-        }
+        }*/
     }
     finally {
         deleteDir()

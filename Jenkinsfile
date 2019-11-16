@@ -26,6 +26,12 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                     def remoteName = "artifactory-local"
                     def lockfile = "${id}.lock"
                     try {
+
+                        stage("Start build info") {
+                            String start_build_info = "conan_build_info --v2 start \"${buildInfo.getName()}\" ${buildInfo.getNumber()}"
+                            sh start_build_info
+                        }
+
                         client.run(command: "config install ${config_url}".toString())
                         client.run(command: "config install -sf hooks -tf hooks https://github.com/conan-io/hooks.git")
                         client.remote.add server: server, repo: artifactory_repo, remoteName: remoteName, force: true
@@ -38,11 +44,6 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
 
                         def scmVars = checkout scm
                         def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
-
-                        stage("Start build info") {
-                            String start_build_info = "conan_build_info --v2 start \"${buildInfo.getName()}\" ${buildInfo.getNumber()}"
-                            sh start_build_info
-                        }
 
                         stage("Get dependencies and create app") {
                             String arguments = "--profile ${profile} --lockfile=${lockfile}"

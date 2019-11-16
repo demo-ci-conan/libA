@@ -58,6 +58,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         stage("Create build info") {
                             def buildInfoFilename = "${id}.json"
                             client.run(command: "search *".toString())
+                            // TODO: manage credentials
                             String create_build_info = "conan_build_info --v2 create --lockfile ${lockfile} --user admin --password password ${buildInfoFilename}"
                             sh create_build_info
                             echo "Stash '${id}' -> '${buildInfoFilename}'"

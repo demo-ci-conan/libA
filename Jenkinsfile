@@ -9,17 +9,18 @@ def organization = "demo-ci-conan"
 def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
-def server = Artifactory.server artifactory_name
-def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
-def remoteName = "artifactory-local"
-def lockfile = "${id}.lock"
-
+def artifactory_url = ""
 
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
     return {
         node {
             docker.image(docker_image).inside("--net=docker_jenkins_artifactory") {
                 withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
+                    def server = Artifactory.server artifactory_name
+                    artifactory_url = server.url
+                    def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
+                    def remoteName = "artifactory-local"
+                    def lockfile = "${id}.lock"
                     try {
                         client.run(command: "config install ${config_url}".toString())
                         client.run(command: "config install -sf hooks -tf hooks https://github.com/conan-io/hooks.git")
@@ -56,7 +57,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             String create_build_info = "conan_build_info --v2 create --lockfile ${lockfile} --user admin --password password ${buildInfoFilename}"
                             sh create_build_info
                             echo "Stash '${id}' -> '${buildInfoFilename}'"
-                            stash name: id, includes: "${buildInfoFilename}"                        
+                            stash name: id, includes: "${buildInfoFilename}"
                         }
 
                         /*
@@ -103,9 +104,7 @@ node {
                 parallel stages
             }
         }
-
-
-        stage("Retrieve build info") {
+        stage("Retrieve and publish build info") {
             docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
                 def last_info = ""
                 docker_runs.each { id, values ->
@@ -116,6 +115,9 @@ node {
                         sh "cat mergedbuildinfo.json"
                     }
                     last_info = "${id}.json"
+                    // TODO: configure credentials properly
+                    String publish_build_info = "conan_build_info --v2 publish --url ${artifactory_url} --user admin --password password mergedbuildinfo"
+                    sh publish_build_info
                 }
             }
         }

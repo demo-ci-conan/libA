@@ -56,27 +56,6 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         echo "Stash '${id}' -> '${buildInfoFilename}'"
                         stash name: id, includes: "${buildInfoFilename}"
                     }
-
-                    /*
-                    stage("Compute build info") {
-                        def buildInfo = Artifactory.newBuildInfo()
-                        String artifactory_credentials = "http://artifactory:8081/artifactory,admin,password"
-                        def buildInfoFilename = "${id}.json"
-
-                        // Install helper script (WIP)
-                        git url: 'https://gist.github.com/a39acad525fd3e7e5315b2fa0bc70b6f.git'
-                        sh 'pip install rtpy'
-
-                        String python_command = "python lockfile_buildinfo.py --remotes=${artifactory_credentials}"
-                        python_command += " --build-number=${buildInfo.getNumber()} --build-name=\"${buildInfo.getName()}\""
-                        python_command += " --multi-module"
-                        python_command += " --output-file=${buildInfoFilename} ${lockfile}"
-                        sh python_command
-
-                        echo "Stash '${id}' -> '${buildInfoFilename}'"
-                        stash name: id, includes: "${buildInfoFilename}"
-                    }
-                    */
                 }
                 finally {
                     //deleteDir()

@@ -132,7 +132,6 @@ node {
                     echo "Full reference: '${reference}'"
 
                     // Trigger dependents jobs
-                    
                     def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                     def sha1 = scmVars.GIT_COMMIT
 

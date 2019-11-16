@@ -9,6 +9,10 @@ def organization = "demo-ci-conan"
 def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
+def server = Artifactory.server artifactory_name
+def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
+def remoteName = "artifactory-local"
+def lockfile = "${id}.lock"
 
 
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
@@ -16,10 +20,6 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
         node {
             docker.image(docker_image).inside("--net=docker_jenkins_artifactory") {
                 withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
-                    def server = Artifactory.server artifactory_name
-                    def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
-                    def remoteName = "artifactory-local"
-                    def lockfile = "${id}.lock"
                     try {
                         client.run(command: "config install ${config_url}".toString())
                         client.run(command: "config install -sf hooks -tf hooks https://github.com/conan-io/hooks.git")

@@ -106,7 +106,6 @@ node {
             }
         }
 
-        /*
         stage("Launch job-graph") {
             docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
                 def scmVars = checkout scm
@@ -151,7 +150,7 @@ node {
                     }
                 }
             }
-        }*/
+        }
     }
     finally {
         deleteDir()

@@ -20,7 +20,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
             docker.image(docker_image).inside("--net=docker_jenkins_artifactory") {
                 def scmVars = checkout scm
                 def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
-                withEnv(["CONAN_HOOK_ERROR_LEVEL=40","CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
+                withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                     def server = Artifactory.server artifactory_name
                     def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
                     def remoteName = "artifactory-local"

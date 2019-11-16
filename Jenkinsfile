@@ -19,6 +19,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
             docker.image(docker_image).inside("--net=docker_jenkins_artifactory") {
                 def scmVars = checkout scm
                 def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
+                def commit_hash = scmVars.GIT_COMMIT.take(8)
                 withEnv(["CONAN_HOOK_ERROR_LEVEL=40","CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                     def server = Artifactory.server artifactory_name
                     def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
@@ -26,10 +27,8 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                     def lockfile = "${id}.lock"
                     try {
 
-                        def buildInfo = Artifactory.newBuildInfo()
-
                         stage("Start build info") {
-                            String start_build_info = "conan_build_info --v2 start \"${buildInfo.getName()}\" ${buildInfo.getNumber()}"
+                            String start_build_info = "conan_build_info --v2 start \"${commit_hash}\" ${BUILD_NUMBER}"
                             sh start_build_info
                         }
 

@@ -81,20 +81,21 @@ node {
             }
         }
         stage("Retrieve  and publish build info") {
-        docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
-                def last_info = ""
-                docker_runs.each { id, values ->
-                    unstash id
-                    sh "cat ${id}.json"
-                    if (last_info != "") {
-                        sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
-                        sh "cat mergedbuildinfo.json"
+            docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
+                    def last_info = ""
+                    docker_runs.each { id, values ->
+                        unstash id
+                        sh "cat ${id}.json"
+                        if (last_info != "") {
+                            sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
+                            sh "cat mergedbuildinfo.json"
+                        }
+                        last_info = "${id}.json"
                     }
-                    last_info = "${id}.json"
                 }
+                String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo"
+                sh publish_build_info
             }
-            String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo"
-            sh publish_build_info
         }
 
         /*

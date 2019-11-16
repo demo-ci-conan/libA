@@ -5,8 +5,8 @@ def docker_runs = [:]  // [id] = [docker_image, profile]
 
 docker_runs["conanio-gcc8"] = ["conanio/gcc8", "linux_gcc_8_x86_64"]
 docker_runs["conanio-gcc7"] = ["conanio/gcc7", "linux_gcc_7_x86_64"]
-docker_runs["conanio/gcc8-armv7hf"] = ["conanio/gcc8", "linux_gcc_8_armv7hf"]
-docker_runs["conanio/gcc8-armv7hf"] = ["conanio/gcc7", "linux_gcc_7_armv7hf"]
+docker_runs["conanio-gcc8-armv7hf"] = ["conanio/gcc8", "linux_gcc_8_armv7hf"]
+docker_runs["conanio-gcc7-armv7hf"] = ["conanio/gcc7", "linux_gcc_7_armv7hf"]
 
 def organization = "demo-ci-conan"
 def user_channel = "demo/testing"

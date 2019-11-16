@@ -26,6 +26,9 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                     def remoteName = "artifactory-local"
                     def lockfile = "${id}.lock"
                     try {
+                        def scmVars = checkout scm
+                        def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
+
                         client.remote.add server: server, repo: artifactory_repo, remoteName: remoteName, force: true
                         def buildInfo = Artifactory.newBuildInfo()
                         def buildInfoFilename = "${id}.json"
@@ -41,9 +44,6 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         stage("${id}") {
                             echo 'Running in ${docker_image}'
                         }
-
-                        def scmVars = checkout scm
-                        def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
 
                         stage("Get dependencies and create app") {
                             String arguments = "--profile ${profile} --lockfile=${lockfile}"

@@ -80,8 +80,8 @@ node {
                 parallel stages
             }
         }
+        stage("Retrieve  and publish build info") {
         docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
-            stage("Retrieve build info") {
                 def last_info = ""
                 docker_runs.each { id, values ->
                     unstash id
@@ -93,10 +93,8 @@ node {
                     last_info = "${id}.json"
                 }
             }
-            stage("Publish build info") {
-                 String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo"
-                 sh publish_build_info
-            }
+            String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo"
+            sh publish_build_info
         }
 
         /*

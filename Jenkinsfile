@@ -9,80 +9,57 @@ def organization = "demo-ci-conan"
 def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
+def server = Artifactory.server artifactory_name
+def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
 
 
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
     return {
         node {
             docker.image(docker_image).inside("--net=docker_jenkins_artifactory") {
-                withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
-                    def server = Artifactory.server artifactory_name
-                    def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
-                    def remoteName = "artifactory-local"
-                    def lockfile = "${id}.lock"
-                    try {
-                        client.run(command: "config install ${config_url}".toString())
-                        client.run(command: "config install -sf hooks -tf hooks https://github.com/conan-io/hooks.git")
-                        client.remote.add server: server, repo: artifactory_repo, remoteName: remoteName, force: true
-                        def buildInfo = Artifactory.newBuildInfo()
-                        def buildInfoFilename = "${id}.json"
+                def remoteName = "artifactory-local"
+                def lockfile = "${id}.lock"
+                try {
+                    client.run(command: "config install ${config_url}".toString())
+                    client.run(command: "config install -sf hooks -tf hooks https://github.com/conan-io/hooks.git")
+                    client.remote.add server: server, repo: artifactory_repo, remoteName: remoteName, force: true
+                    def buildInfo = Artifactory.newBuildInfo()
+                    def buildInfoFilename = "${id}.json"
 
-                        stage("${id}") {
-                            echo 'Running in ${docker_image}'
-                        }
-
-                        def scmVars = checkout scm
-                        def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
-
-                        stage("Start build info") {
-                            String start_build_info = "conan_build_info --v2 start \"${buildInfo.getName()}\" ${buildInfo.getNumber()}"
-                            sh start_build_info
-                        }
-
-                        stage("Get dependencies and create app") {
-                            String arguments = "--profile ${profile} --lockfile=${lockfile}"
-                            client.run(command: "graph lock . ${arguments}".toString())
-                            client.run(command: "create . ${user_channel} ${arguments} --build missing".toString())
-                            sh "cat ${lockfile}"
-                        }
-
-                        stage("Upload packages") {
-                            String uploadCommand = "upload ${repo_name}* --all -r ${remoteName} --confirm  --force"
-                            client.run(command: uploadCommand)
-                        }
-
-                        stage("Create build info") {
-                            client.run(command: "search *".toString())
-                            String create_build_info = "conan_build_info --v2 create --lockfile ${lockfile} --user admin --password password ${buildInfoFilename}"
-                            sh create_build_info
-                            echo "Stash '${id}' -> '${buildInfoFilename}'"
-                            stash name: id, includes: "${buildInfoFilename}"                        
-                        }
-
-                        /*
-                        stage("Compute build info") {
-                            def buildInfo = Artifactory.newBuildInfo()
-                            String artifactory_credentials = "http://artifactory:8081/artifactory,admin,password"
-                            def buildInfoFilename = "${id}.json"
-
-                            // Install helper script (WIP)
-                            git url: 'https://gist.github.com/a39acad525fd3e7e5315b2fa0bc70b6f.git'
-                            sh 'pip install rtpy'
-
-                            String python_command = "python lockfile_buildinfo.py --remotes=${artifactory_credentials}"
-                            python_command += " --build-number=${buildInfo.getNumber()} --build-name=\"${buildInfo.getName()}\""
-                            python_command += " --multi-module"
-                            python_command += " --output-file=${buildInfoFilename} ${lockfile}"
-                            sh python_command
-
-                            echo "Stash '${id}' -> '${buildInfoFilename}'"
-                            stash name: id, includes: "${buildInfoFilename}"
-                        }
-                        */
+                    stage("${id}") {
+                        echo 'Running in ${docker_image}'
                     }
-                    finally {
-                        //deleteDir()
+
+                    def scmVars = checkout scm
+                    def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
+
+                    stage("Start build info") {
+                        String start_build_info = "conan_build_info --v2 start \"${buildInfo.getName()}\" ${buildInfo.getNumber()}"
+                        sh start_build_info
                     }
+
+                    stage("Get dependencies and create app") {
+                        String arguments = "--profile ${profile} --lockfile=${lockfile}"
+                        client.run(command: "graph lock . ${arguments}".toString())
+                        client.run(command: "create . ${user_channel} ${arguments} --build missing".toString())
+                        sh "cat ${lockfile}"
+                    }
+
+                    stage("Upload packages") {
+                        String uploadCommand = "upload ${repo_name}* --all -r ${remoteName} --confirm  --force"
+                        client.run(command: uploadCommand)
+                    }
+
+                    stage("Create build info") {
+                        client.run(command: "search *".toString())
+                        String create_build_info = "conan_build_info --v2 create --lockfile ${lockfile} --user admin --password password ${buildInfoFilename}"
+                        sh create_build_info
+                        echo "Stash '${id}' -> '${buildInfoFilename}'"
+                        stash name: id, includes: "${buildInfoFilename}"                        
+                    }
+                }
+                finally {
+                    //deleteDir()
                 }
             }
         }
@@ -99,24 +76,12 @@ docker_runs.each { id, values ->
 node {
     try {
         stage("Build + upload") {
-            withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
+            withEnv(["CONAN_HOOK_ERROR_LEVEL=40","CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                 parallel stages
             }
         }
-
-
-        stage("Retrieve build info") {
-            docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
-                // def buildInfo = Artifactory.newBuildInfo()
-                // String artifactory_credentials = "http://artifactory:8081/artifactory,admin,password"
-                // def buildInfoFilename = "buildinfo.json"
-                
-                // // Install helper script (WIP)
-                // git url: 'https://gist.github.com/a39acad525fd3e7e5315b2fa0bc70b6f.git'
-                // sh 'pip install rtpy'
-
-                // // Merge Build Info from nodes
-                // String merge_bi_command = "python merge_buildinfo.py --output-file ${buildInfoFilename}"
+        docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
+            stage("Retrieve build info") {
                 def last_info = ""
                 docker_runs.each { id, values ->
                     unstash id
@@ -127,17 +92,10 @@ node {
                     }
                     last_info = "${id}.json"
                 }
-                //sh merge_bi_command
-
-                // // Publish build info
-                // String publish_command = "python publish_buildinfo.py --remote=${artifactory_credentials} ${buildInfoFilename}"
-                // sh publish_command
-
-                // stage("Publish build info") {
-                //     String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password ${buildInfoFilename}"
-                //     sh publish_build_info
-                // }
-
+            }
+            stage("Publish build info") {
+                 String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo"
+                 sh publish_build_info
             }
         }
 

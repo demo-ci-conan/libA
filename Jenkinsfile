@@ -9,7 +9,6 @@ def organization = "demo-ci-conan"
 def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
-def artifactory_url = ""
 
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
     return {
@@ -17,7 +16,6 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
             docker.image(docker_image).inside("--net=docker_jenkins_artifactory") {
                 withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                     def server = Artifactory.server artifactory_name
-                    artifactory_url = server.url
                     def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
                     def remoteName = "artifactory-local"
                     def lockfile = "${id}.lock"
@@ -106,6 +104,7 @@ node {
         }
         stage("Retrieve and publish build info") {
             docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
+                def server = Artifactory.server artifactory_name
                 def last_info = ""
                 docker_runs.each { id, values ->
                     unstash id
@@ -116,7 +115,7 @@ node {
                     }
                     last_info = "${id}.json"
                     // TODO: configure credentials properly
-                    String publish_build_info = "conan_build_info --v2 publish --url ${artifactory_url} --user admin --password password mergedbuildinfo"
+                    String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo"
                     sh publish_build_info
                 }
             }

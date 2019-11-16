@@ -145,7 +145,11 @@ node {
                                                 ]}"""
                         withCredentials([usernamePassword(credentialsId: 'job-graph', passwordVariable: 'pass', usernameVariable: 'user')]) {
                             // TODO: FIXME: user pass from credentials
-                            def url = "http://admin:1180edb4037ce3fb2dae7260d2cf4ddcb2@jenkins:8080/job/test_project/build"
+                            def jenkins_url = "jenkins:8080"
+                            if (env.JENKINS_URL) {
+                                jenkins_url = "${env.JENKINS_URL}"
+                            }
+                            def url = "http://admin:1180edb4037ce3fb2dae7260d2cf4ddcb2@${jenkins_url}/job/test_project/build"
                             sh "curl -v POST ${url} --data-urlencode json='${json}'"
                         }                            
                     }

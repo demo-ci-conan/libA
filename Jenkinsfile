@@ -23,10 +23,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
     return {
         node {
             docker.image(docker_image).inside("--net=docker_jenkins_artifactory") {
-                sh "printenv"
                 def scmVars = checkout scm
-                echo scmVars.GIT_URL
-                echo scmVars.GIT_BRANCH
                 def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                 withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                     def server = Artifactory.server artifactory_name
@@ -81,8 +78,6 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             sh create_build_info
                             echo "Stash '${id}' -> '${buildInfoFilename}'"
                             stash name: id, includes: "${buildInfoFilename}"
-                            echo "Stash ${lockfile} -> ${lockfile}"
-                            stash name: lockfile, includes: "${lockfile}"
                         }
                     }
                     finally {
@@ -134,7 +129,7 @@ node {
                 }
 
                 stage("Trigger dependents jobs") {
-                    unstash id
+                    unstash "full_reference"
                     sh "cat search_output.json"
                     
                     def props = readJSON file: search_output

@@ -158,7 +158,7 @@ node {
                                 jenkins_user_token = "${env.JENKINS_USER_TOKEN}"
                             }
                             def url = "http://${jenkins_user_token}@${jenkins_url}/job/test_project/build"
-                            sh "curl -v POST ${url} --data-urlencode json='${json}'"
+                            sh "curl -X POST ${url} --data-urlencode json='${json}' -v"
                         }                            
                     }
                 }

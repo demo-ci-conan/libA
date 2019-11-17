@@ -131,7 +131,7 @@ node {
 
                 stage("Trigger dependents jobs") {
                     unstash "full_reference"
-                    sh "cat search_output.json""
+                    sh "cat search_output.json"
                     
                     def props = readJSON file: "search_output.json"
                     def revision = props[0]['revision']

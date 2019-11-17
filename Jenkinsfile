@@ -67,6 +67,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                                 def props = readJSON file: search_output
                                 def revision = props[0]['revision']
                                 full_reference = "${name}/${version}@${user_channel}#${revision}"
+                                echo "full reference: ${full_reference}"
                             }
 
                         }

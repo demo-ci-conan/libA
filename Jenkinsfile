@@ -56,7 +56,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         }
 
                         stage("Calculate full reference") {
-                            if (id=="conanio-gcc") {// TODO fix this
+                            if (id=="conanio-gcc8") {// TODO fix this
                                 name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
                                 version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()
                                 def search_output = "search_output.json"

@@ -60,7 +60,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                                 name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
                                 version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()
                                 def search_output = "search_output.json"
-                                client.run(command: "search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}")
+                                sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
                                 stash name: "full_reference", includes: search_output
                             }
                         }

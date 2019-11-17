@@ -62,6 +62,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                                 def search_output = "search_output.json"
                                 sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
                                 stash name: "full_reference", includes: search_output
+                                sh "cat search_output.json"
                             }
                         }
 
@@ -130,9 +131,9 @@ node {
 
                 stage("Trigger dependents jobs") {
                     unstash "full_reference"
-                    sh "cat search_output.json"
+                    sh "cat search_output.json""
                     
-                    def props = readJSON file: search_output
+                    def props = readJSON file: "search_output.json"
                     def revision = props[0]['revision']
                     def reference = "${name}/${version}@${user_channel}#${revision}"
                     echo "Full reference: '${reference}'"

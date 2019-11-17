@@ -17,6 +17,8 @@ def organization = "demo-ci-conan"
 def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
+def full_reference = ""
+
 
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
     return {
@@ -55,6 +57,18 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             client.run(command: "graph lock . ${arguments}".toString())
                             client.run(command: "create . ${user_channel} ${arguments} --build missing".toString())
                             sh "cat ${lockfile}"
+
+                            // Get the information about the package (ref + rrev)
+                            if (full_reference == "") {
+                                name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
+                                version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
+                                def search_output = "search_output.json"
+                                sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
+                                def props = readJSON file: search_output
+                                def revision = props[0]['revision']
+                                full_reference = "${name}/${version}@${user_channel}#${revision}"
+                            }
+
                         }
 
                         stage("Upload packages") {
@@ -130,19 +144,6 @@ node {
                 }
 
                 stage("Trigger dependents jobs") {
-                    // Get the information about the package (ref + rrev)
-                    name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
-                    version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()
-                    sh "conan export . ${user_channel}"
-                    
-                    def search_output = "search_output.json"
-                    sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
-
-                    def props = readJSON file: search_output
-                    def revision = props[0]['revision']
-                    def reference = "${name}/${version}@${user_channel}#${revision}"
-                    echo "Full reference: '${reference}'"
-
                     // Trigger dependents jobs
                     def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                     def sha1 = scmVars.GIT_COMMIT

@@ -78,12 +78,10 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
     }
 }
 
-
 def stages = [:]
 docker_runs.each { id, values ->
     stages[id] = get_stages(id, values[0], artifactory_name, artifactory_repo, values[1], user_channel, config_url)
 }
-
 
 node {
     try {

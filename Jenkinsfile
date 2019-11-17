@@ -22,7 +22,6 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
     return {
         node {
             docker.image(docker_image).inside("--net=docker_jenkins_artifactory") {
-                sh "tree ."
                 sh "printenv"
                 def scmVars = checkout scm
                 echo scmVars.GIT_URL
@@ -114,7 +113,6 @@ node {
 
         stage("Launch job-graph") {
             docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
-                sh "tree ."
                 sh "printenv"
                 def scmVars = checkout scm
                 echo scmVars.GIT_URL

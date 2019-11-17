@@ -114,9 +114,6 @@ node {
         stage("Launch job-graph") {
             docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
                 def scmVars = checkout scm
-                //stage("Get project") {
-                //    checkout scm
-                //}
 
                 stage("Configure Conan client") {
                     sh "conan config install ${config_url}".toString()
@@ -130,6 +127,7 @@ node {
                     
                     def search_output = "search_output.json"
                     sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
+
                     def props = readJSON file: search_output
                     def revision = props[0]['revision']
                     def reference = "${name}/${version}@${user_channel}#${revision}"
@@ -141,11 +139,11 @@ node {
 
                     projects.each {project_id -> 
                         def json = """{"parameter": [{"name": "reference", "value": "${reference}"}, \
-                                                {"name": "project_id", "value": "${project_id}"}, \
-                                                {"name": "organization", "value": "${organization}"}, \
-                                                {"name": "repository", "value": "${repository}"}, \
-                                                {"name": "sha1", "value": "${sha1}"} \
-                                                ]}"""
+                                                     {"name": "project_id", "value": "${project_id}"}, \
+                                                     {"name": "organization", "value": "${organization}"}, \
+                                                     {"name": "repository", "value": "${repository}"}, \
+                                                     {"name": "sha1", "value": "${sha1}"} \
+                                                     ]}"""
                         withCredentials([usernamePassword(credentialsId: 'job-graph', passwordVariable: 'pass', usernameVariable: 'user')]) {
                             // TODO: FIXME: user pass from credentials
                             def jenkins_url = "jenkins:8080"

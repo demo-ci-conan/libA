@@ -17,7 +17,6 @@ def organization = "demo-ci-conan"
 def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
-def full_reference = ""
 
 
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
@@ -57,19 +56,16 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             client.run(command: "graph lock . ${arguments}".toString())
                             client.run(command: "create . ${user_channel} ${arguments} --build missing".toString())
                             sh "cat ${lockfile}"
+                        }
 
-                            // Get the information about the package (ref + rrev)
-                            if (full_reference == "") {
+                        stage("Calculate full reference") {
+                            if (id=="conanio-gcc") {// TODO fix this
                                 name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
-                                version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
+                                version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()
                                 def search_output = "search_output.json"
-                                sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
-                                def props = readJSON file: search_output
-                                def revision = props[0]['revision']
-                                full_reference = "${name}/${version}@${user_channel}#${revision}"
-                                echo "full reference: ${full_reference}"
+                                client.run(command: "search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}")
+                                stash name: "full_reference", includes: search_output
                             }
-
                         }
 
                         stage("Upload packages") {
@@ -126,29 +122,28 @@ node {
                 // TODO: configure credentials properly
                 String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo.json"
                 sh publish_build_info
-                docker_runs.each { id, values ->
-                    def lockfile = "${id}.lock"
-                    unstash lockfile
-                    sh "cat ${lockfile}"
-                }
             }
         }
 
         stage("Launch job-graph") {
             docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
-                sh "printenv"
                 def scmVars = checkout scm
-                echo scmVars.GIT_URL
-                echo scmVars.GIT_BRANCH
+
                 stage("Configure Conan client") {
                     sh "conan config install ${config_url}".toString()
                 }
 
                 stage("Trigger dependents jobs") {
-                    // Trigger dependents jobs
+                    unstash id
+                    sh "cat search_output.json"
+                    
+                    def props = readJSON file: search_output
+                    def revision = props[0]['revision']
+                    def reference = "${name}/${version}@${user_channel}#${revision}"
+                    echo "Full reference: '${reference}'"
+
                     def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                     def sha1 = scmVars.GIT_COMMIT
-
                     projects.each {project_id -> 
                         def json = """{"parameter": [{"name": "reference", "value": "${reference}"}, \
                                                      {"name": "project_id", "value": "${project_id}"}, \

@@ -107,10 +107,10 @@ node {
                         sh "cat mergedbuildinfo.json"
                     }
                     last_info = "${id}.json"
-                    // TODO: configure credentials properly
-                    String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo.json"
-                    sh publish_build_info
                 }
+                // TODO: configure credentials properly
+                String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo.json"
+                sh publish_build_info
                 docker_runs.each { id, values ->
                     def lockfile = "${id}.lock"
                     unstash lockfile

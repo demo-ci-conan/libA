@@ -25,6 +25,8 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                 sh "printenv"
                 def scmVars = checkout scm
                 echo scmVars.GIT_URL
+                echo "BRANCH NAME:"
+                sh "git branch"
                 def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                 withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                     def server = Artifactory.server artifactory_name
@@ -70,8 +72,8 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             echo "Stash '${id}' -> '${buildInfoFilename}'"
                             stash name: id, includes: "${buildInfoFilename}"
                             sh "cp conan.lock ${id}_lock.lock"
-                            echo "Stash '${id}_lock' -> 'conan.lock'"
-                            stash name: "${id}_lock", includes: "${id}_lock.lock"
+                            echo "Stash ${lockfile} -> ${lockfile}"
+                            stash name: lockfile, includes: "${lockfile}"
                         }
                     }
                     finally {
@@ -123,7 +125,8 @@ node {
                 sh "printenv"
                 def scmVars = checkout scm
                 echo scmVars.GIT_URL
-
+                echo "BRANCH NAME:"
+                sh "git branch"
                 stage("Configure Conan client") {
                     sh "conan config install ${config_url}".toString()
                 }

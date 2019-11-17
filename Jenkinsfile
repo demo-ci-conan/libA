@@ -112,8 +112,9 @@ node {
                     sh publish_build_info
                 }
                 docker_runs.each { id, values ->
-                    unstash "${id}_lock.lock"
-                    sh "cat ${id}_lock.lock"
+                    def lockfile = "${id}.lock"
+                    unstash lockfile
+                    sh "cat ${lockfile}"
                 }
             }
         }

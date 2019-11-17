@@ -69,10 +69,13 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             sh create_build_info
                             echo "Stash '${id}' -> '${buildInfoFilename}'"
                             stash name: id, includes: "${buildInfoFilename}"
+                            sh "cp conan.lock ${id}_lock.lock"
+                            echo "Stash '${id}_lock' -> 'conan.lock'"
+                            stash name: "${id}_lock", includes: "${id}_lock.lock"
                         }
                     }
                     finally {
-                        //deleteDir()
+                        deleteDir()
                     }
                 }
             }
@@ -107,6 +110,10 @@ node {
                     // TODO: configure credentials properly
                     String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo.json"
                     sh publish_build_info
+                }
+                docker_runs.each { id, values ->
+                    unstash "${id}_lock.lock"
+                    sh "cat ${id}_lock.lock"
                 }
             }
         }
@@ -165,6 +172,6 @@ node {
         }
     }
     finally {
-        //deleteDir()
+        deleteDir()
     }
 }

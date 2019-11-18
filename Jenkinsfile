@@ -1,4 +1,3 @@
-
 def artifactory_name = "Artifactory Docker"
 def artifactory_repo = "conan-local"
 def docker_runs = [:]  // [id] = [docker_image, profile]
@@ -17,7 +16,6 @@ def organization = "demo-ci-conan"
 def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
-
 
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
     return {

@@ -1,0 +1,14 @@
+{
+ "profile_host": "[settings]\narch=x86_64\narch_build=x86_64\nbuild_type=Debug\ncompiler=apple-clang\ncompiler.libcxx=libc++\ncompiler.version=11.0\nos=Macos\nos_build=Macos\n[options]\n[build_requires]\n[env]\n",
+ "graph_lock": {
+  "nodes": {
+   "324d00d4-096b-11ea-999d-4865ee10951b": {
+    "pref": "libA/0.0@demo/testing#30ce3bd320b3573e7b614618fdfc474a:f1412136922de2930301d4a63aab2de6c6e53f76#69dccde9c5c1146d280f90e3e6c730cd",
+    "options": "shared=False",
+    "modified": "Build",
+    "path": "/Users/carlos/Documents/hackaton/conan-ci-demo/libA/conanfile.py"
+   }
+  }
+ },
+ "version": "0.1"
+}

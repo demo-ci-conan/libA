@@ -71,7 +71,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             def buildInfoFilename = "${id}.json"
                             client.run(command: "search *".toString())
                             withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
-                              sh "conan_build_info --v2 create --lockfile ${lockfile} ${buildInfoFilename}"
+                              sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" ${buildInfoFilename}"
                             }
                             echo "Stash '${id}' -> '${buildInfoFilename}'"
                             stash name: id, includes: "${buildInfoFilename}"
@@ -113,7 +113,7 @@ node {
                 withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
                   sh """\
 cat mergedbuildinfo.json
-conan_build_info --v2 publish --url ${server.url} mergedbuildinfo.json
+conan_build_info --v2 publish --url ${server.url} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" mergedbuildinfo.json
 """
                 }
             }

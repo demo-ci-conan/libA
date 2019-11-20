@@ -65,8 +65,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
 conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}
 cat search_output.json
 """)
-                                def props = readJSON file: "search_output.json"
-                                reference_revision = props[0]['revision']
+                                stash name: 'full_reference', includes: 'search_output.json'
                             }
                         }
 
@@ -134,6 +133,9 @@ pipeline {
                 sha1 = buildInfo['vcs'][0]['revision']
                 repository = buildInfo['vcs'][0]['url'].tokenize('/')[3].split("\\.")[0]
               }
+            unstash 'full_reference'
+            def props = readJSON file: "search_output.json"
+            reference_revision = props[0]['revision']
             withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
               sh """\
                 cat mergedbuildinfo.json

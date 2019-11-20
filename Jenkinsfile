@@ -18,6 +18,8 @@ def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
 
 String reference_revision = null
+String repository = null
+String sha1 = null
 
 def shell_quote(word) {
   return "'" + word.replace("'", "'\\''") + "'"
@@ -28,7 +30,8 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
         node {
             docker.image(docker_image).inside("--net=host") {
                 def scmVars = checkout scm
-                def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
+                repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
+                sha1 = scmVars.GIT_COMMIT
                 withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                     def server = Artifactory.server artifactory_name
                     def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
@@ -51,7 +54,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         stage("Get dependencies and create app") {
                             String arguments = "--profile ${profile} --lockfile=${lockfile}"
                             client.run(command: "graph lock . ${arguments}".toString())
-                            client.run(command: "create . ${user_channel} ${arguments} --build ${repo_name} --ignore-dirty".toString())
+                            client.run(command: "create . ${user_channel} ${arguments} --build ${repository} --ignore-dirty".toString())
                             sh "cat ${lockfile}"
                         }
 
@@ -70,7 +73,7 @@ cat search_output.json
                         }
 
                         stage("Upload packages") {
-                            String uploadCommand = "upload ${repo_name}* --all -r ${remoteName} --confirm  --force"
+                            String uploadCommand = "upload ${repository} --all -r ${remoteName} --confirm  --force"
                             client.run(command: uploadCommand)
                         }
 
@@ -103,7 +106,7 @@ docker_runs = stage("Build + upload") {
     }
 }
 
-def sub_project_triggers = node {
+node {
     try {
         stage("Retrieve and publish build info") {
             docker.image("conanio/gcc8").inside("--net=host") {
@@ -127,33 +130,28 @@ conan_build_info --v2 publish --url ${server.url} --user \"\${CONAN_LOGIN_USERNA
                 }
             }
         }
-
-        stage("Launch job-graph") {
-            def scmVars = checkout scm
-
-            stage("Trigger dependents jobs") {
-                def reference = "${name}/${version}@${user_channel}#${reference_revision}"
-                echo "Full reference: '${reference}'"
-
-                def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
-                def sha1 = scmVars.GIT_COMMIT
-                projects.collectEntries {project_id -> 
-                    ["${project_id}": {
-                      build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
-                        [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
-                        [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
-                        [$class: 'StringParameterValue', name: 'organization', value: organization],
-                        [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
-                        [$class: 'StringParameterValue', name: 'sha1',         value: sha1        ],
-                      ])
-                    }]
-                }
-            }
-        }
     }
     finally {
         deleteDir()
     }
 }
 
-parallel(sub_project_triggers)
+
+stage("Launch job-graph") {
+    stage("Trigger dependents jobs") {
+        def reference = "${name}/${version}@${user_channel}#${reference_revision}"
+        echo "Full reference: '${reference}'"
+
+        parallel projects.collectEntries {project_id -> 
+            ["${project_id}": {
+              build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
+                [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
+                [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
+                [$class: 'StringParameterValue', name: 'organization', value: organization],
+                [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
+                [$class: 'StringParameterValue', name: 'sha1',         value: sha1        ],
+              ])
+            }]
+        }
+    }
+}

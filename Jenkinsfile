@@ -17,9 +17,7 @@ def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
 
-String reference_revision = null
-String repository = null
-String sha1 = null
+def propagate_params = [:]
 
 def shell_quote(word) {
   return "'" + word.replace("'", "'\\''") + "'"
@@ -30,8 +28,8 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
         node {
             docker.image(docker_image).inside("--net=host") {
                 def scmVars = checkout scm
-                repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
-                sha1 = scmVars.GIT_COMMIT
+                propagate_params.repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
+                propagate_params.sha1 = scmVars.GIT_COMMIT
                 withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                     def server = Artifactory.server artifactory_name
                     def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
@@ -54,7 +52,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         stage("Get dependencies and create app") {
                             String arguments = "--profile ${profile} --lockfile=${lockfile}"
                             client.run(command: "graph lock . ${arguments}".toString())
-                            client.run(command: "create . ${user_channel} ${arguments} --build ${repository} --ignore-dirty".toString())
+                            client.run(command: "create . ${user_channel} ${arguments} --build ${propagate_params.repository} --ignore-dirty".toString())
                             sh "cat ${lockfile}"
                         }
 
@@ -68,12 +66,12 @@ conan search ${name}/${version}@${user_channel} --revisions --raw --json=${searc
 cat search_output.json
 """)
                                 def props = readJSON file: "search_output.json"
-                                reference_revision = props[0]['revision']
+                                propagate_params.reference_revision = props[0]['revision']
                             }
                         }
 
                         stage("Upload packages") {
-                            String uploadCommand = "upload ${repository} --all -r ${remoteName} --confirm  --force"
+                            String uploadCommand = "upload ${propagate_params.repository} --all -r ${remoteName} --confirm  --force"
                             client.run(command: uploadCommand)
                         }
 
@@ -152,7 +150,10 @@ pipeline {
       steps {
         script {
           stage("Trigger dependents jobs") {
-            def reference = "${name}/${version}@${user_channel}#${reference_revision}"
+            assert propagate_params.reference_revision != null
+            assert propagate_params.repository != null
+            assert propagate_params.sha1 != null
+            def reference = "${name}/${version}@${user_channel}#${propagate_params.reference_revision}"
               echo "Full reference: '${reference}'"
 
               parallel projects.collectEntries {project_id -> 
@@ -161,8 +162,8 @@ pipeline {
                       [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
                       [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
                       [$class: 'StringParameterValue', name: 'organization', value: organization],
-                      [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
-                      [$class: 'StringParameterValue', name: 'sha1',         value: sha1        ],
+                      [$class: 'StringParameterValue', name: 'repository',   value: propagate_params.repository  ],
+                      [$class: 'StringParameterValue', name: 'sha1',         value: propagate_params.sha1        ],
                   ])
                 }]
               }

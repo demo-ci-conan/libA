@@ -95,61 +95,80 @@ cat search_output.json
     }
 }
 
-docker_runs = stage("Build + upload") {
-    withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
-        parallel docker_runs.collectEntries { id, values ->
-          def (docker_image, profile) = values
-          ["${id}": get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url)]
-        }
-    }
-}
 
-node {
-    try {
-        stage("Retrieve and publish build info") {
-            docker.image("conanio/gcc8").inside("--net=host") {
-                def server = Artifactory.server artifactory_name
-                def last_info = ""
-                docker_runs.each { id, buildInfo ->
-                    // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
-                    buildInfo['name'] = buildInfo['name'].replace('\\:', ':')
+pipeline {
+  agent none
 
-                    writeJSON file: "${id}.json", json: buildInfo
-                    if (last_info != "") {
-                        sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
-                    }
-                    last_info = "${id}.json"
-                }
-                withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
-                  sh """\
-cat mergedbuildinfo.json
-conan_build_info --v2 publish --url ${server.url} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" mergedbuildinfo.json
-"""
-                }
+  stages {
+    stage("Build + upload") {
+      steps {
+        script {
+          docker_runs = withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
+            parallel docker_runs.collectEntries { id, values ->
+              def (docker_image, profile) = values
+                ["${id}": get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url)]
             }
+          }
         }
+      }
     }
-    finally {
-        deleteDir()
-    }
-}
 
+    stage("Retrieve and publish build info") {
+      agent any
 
-stage("Launch job-graph") {
-    stage("Trigger dependents jobs") {
-        def reference = "${name}/${version}@${user_channel}#${reference_revision}"
-        echo "Full reference: '${reference}'"
+      steps {
+        script {
+          docker.image("conanio/gcc8").inside("--net=host") {
+            def server = Artifactory.server artifactory_name
+              def last_info = ""
+              docker_runs.each { id, buildInfo ->
+                // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
+                buildInfo['name'] = buildInfo['name'].replace('\\:', ':')
 
-        parallel projects.collectEntries {project_id -> 
-            ["${project_id}": {
-              build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
-                [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
-                [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
-                [$class: 'StringParameterValue', name: 'organization', value: organization],
-                [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
-                [$class: 'StringParameterValue', name: 'sha1',         value: sha1        ],
-              ])
-            }]
+                  writeJSON file: "${id}.json", json: buildInfo
+                  if (last_info != "") {
+                    sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
+                  }
+                last_info = "${id}.json"
+              }
+            withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+              sh """\
+                cat mergedbuildinfo.json
+                conan_build_info --v2 publish --url ${server.url} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" mergedbuildinfo.json
+                """
+            }
+          }
         }
+      }
+
+      post {
+        always {
+          deleteDir()
+        }
+      }
     }
+
+    stage("Launch job-graph") {
+      steps {
+        script {
+          stage("Trigger dependents jobs") {
+            def reference = "${name}/${version}@${user_channel}#${reference_revision}"
+              echo "Full reference: '${reference}'"
+
+              parallel projects.collectEntries {project_id -> 
+                ["${project_id}": {
+                  build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
+                      [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
+                      [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
+                      [$class: 'StringParameterValue', name: 'organization', value: organization],
+                      [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
+                      [$class: 'StringParameterValue', name: 'sha1',         value: sha1        ],
+                  ])
+                }]
+              }
+          }
+        }
+      }
+    }
+  }
 }

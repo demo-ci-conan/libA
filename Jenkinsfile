@@ -95,14 +95,12 @@ cat search_output.json
     }
 }
 
-def stages = [:]
-docker_runs.each { id, values ->
-    stages[id] = get_stages(id, values[0], artifactory_name, artifactory_repo, values[1], user_channel, config_url)
-}
-
 docker_runs = stage("Build + upload") {
     withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
-        parallel stages
+        parallel docker_runs.collectEntries { id, values ->
+          def (docker_image, profile) = values
+          ["${id}": get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url)]
+        }
     }
 }
 

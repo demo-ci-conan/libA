@@ -132,21 +132,13 @@ node {
                 def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                 def sha1 = scmVars.GIT_COMMIT
                 projects.each {project_id -> 
-                    def json = """{"parameter": [{"name": "reference", "value": "${reference}"}, \
-                                                    {"name": "project_id", "value": "${project_id}"}, \
-                                                    {"name": "organization", "value": "${organization}"}, \
-                                                    {"name": "repository", "value": "${repository}"}, \
-                                                    {"name": "sha1", "value": "${sha1}"} \
-                                                    ]}"""
-                    withCredentials([usernamePassword(credentialsId: 'job-graph', passwordVariable: 'pass', usernameVariable: 'user')]) {
-                        // TODO: FIXME: user pass from credentials 
-                        def jenkins_user_token = "admin:1180edb4037ce3fb2dae7260d2cf4ddcb2"
-                        if (env.JENKINS_USER_TOKEN) {
-                            jenkins_user_token = "${env.JENKINS_USER_TOKEN}"
-                        }
-                        def url = "${env.JENKINS_URL}job/test_project/build"
-                        sh "curl -u ${jenkins_user_token} -v POST ${url} --data-urlencode json='${json}'"
-                    }                            
+                    build(job: 'demo-ci-conan/jenkins', propagate: true, parameters: [
+                      [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
+                      [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
+                      [$class: 'StringParameterValue', name: 'organization', value: organization],
+                      [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
+                      [$class: 'StringParameterValue', name: 'sha1',         value: sha1        ],
+                    ])
                 }
             }
         }

@@ -91,13 +91,14 @@ docker_runs.each { id, values ->
     stages[id] = get_stages(id, values[0], artifactory_name, artifactory_repo, values[1], user_channel, config_url)
 }
 
+stage("Build + upload") {
+    withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
+        parallel stages
+    }
+}
+
 node {
     try {
-        stage("Build + upload") {
-            withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
-                parallel stages
-            }
-        }
         stage("Retrieve and publish build info") {
             docker.image("conanio/gcc8").inside("--net=host") {
                 def server = Artifactory.server artifactory_name

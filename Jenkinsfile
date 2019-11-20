@@ -35,7 +35,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
 
                         stage("Start build info") {
                             sh '''
-                            conan_build_info --v2 start \"${buildInfo.getName()}\" ${buildInfo.getNumber()}
+                            conan_build_info --v2 start ${buildInfo.getName()} ${buildInfo.getNumber()}
                             '''
                         }
 

@@ -68,9 +68,7 @@ cat ${search_output}
                         }
 
                         stage("Upload packages") {
-                            withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
-                              sh("conan upload ${repo_name}* --all -r ${remoteName} --confirm  --force")
-                            }
+                            sh("conan upload ${repo_name}* --all -r ${remoteName} --confirm  --force")
                         }
 
                         stage("Create build info") {

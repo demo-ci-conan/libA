@@ -33,7 +33,6 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                     def remoteName = "artifactory-local"
                     def lockfile = "${id}.lock"
                     try {
-
                         def buildInfo = Artifactory.newBuildInfo()
 
                         stage("Start build info") {
@@ -76,8 +75,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
                               sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" ${buildInfoFilename}"
                             }
-                            echo "Stash '${id}' -> '${buildInfoFilename}'"
-                            stash name: id, includes: "${buildInfoFilename}"
+                            return readJSON(file: buildInfoFilename)
                         }
                     }
                     finally {
@@ -94,7 +92,7 @@ docker_runs.each { id, values ->
     stages[id] = get_stages(id, values[0], artifactory_name, artifactory_repo, values[1], user_channel, config_url)
 }
 
-stage("Build + upload") {
+docker_runs = stage("Build + upload") {
     withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
         parallel stages
     }
@@ -106,18 +104,16 @@ def sub_project_triggers = node {
             docker.image("conanio/gcc8").inside("--net=host") {
                 def server = Artifactory.server artifactory_name
                 def last_info = ""
-                docker_runs.each { id, values ->
-                    unstash id
-                    sh "cat ${id}.json"
+                docker_runs.each { id, buildInfo ->
+                    // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
+                    buildInfo['name'] = buildInfo['name'].replace('\\:', ':')
+
+                    writeJSON file: "${id}.json", json: buildInfo
                     if (last_info != "") {
                         sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
                     }
                     last_info = "${id}.json"
                 }
-                // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
-                def buildInfo = readJSON file: 'mergedbuildinfo.json'
-                buildInfo['name'] = buildInfo['name'].replace('\\:', ':')
-                writeJSON file: 'mergedbuildinfo.json', json: buildInfo
                 withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
                   sh """\
 cat mergedbuildinfo.json

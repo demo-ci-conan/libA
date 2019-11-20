@@ -114,6 +114,10 @@ node {
                     }
                     last_info = "${id}.json"
                 }
+                // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
+                def buildInfo = readJSON file: 'mergedbuildinfo.json'
+                buildInfo['name'] = buildInfo['name'].replace('\\:', ':')
+                writeJSON file: 'mergedbuildinfo.json', json: buildInfo
                 withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
                   sh """\
 cat mergedbuildinfo.json

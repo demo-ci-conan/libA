@@ -20,7 +20,7 @@ def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TO
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
     return {
         node {
-            docker.image(docker_image).inside("--net=docker_jenkins_artifactory") {
+            docker.image(docker_image).inside("--net=host") {
                 sh "pip install git+git://github.com/czoido/conan.git@hackaton_branch"
                 def scmVars = checkout scm
                 def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
@@ -100,7 +100,7 @@ node {
             }
         }
         stage("Retrieve and publish build info") {
-            docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
+            docker.image("conanio/gcc8").inside("--net=host") {
                 sh "pip install git+git://github.com/czoido/conan.git@hackaton_branch"
                 def server = Artifactory.server artifactory_name
                 def last_info = ""

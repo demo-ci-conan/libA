@@ -107,12 +107,14 @@ node {
                     sh "cat ${id}.json"
                     if (last_info != "") {
                         sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
-                        sh "cat mergedbuildinfo.json"
                     }
                     last_info = "${id}.json"
                 }
                 withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
-                  sh "conan_build_info --v2 publish --url ${server.url} mergedbuildinfo.json"
+                  sh """\
+cat mergedbuildinfo.json
+conan_build_info --v2 publish --url ${server.url} mergedbuildinfo.json
+"""
                 }
             }
         }

@@ -34,7 +34,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         def buildInfo = Artifactory.newBuildInfo()
 
                         stage("Start build info") {
-                            String start_build_info = 'conan_build_info --v2 start \\\"${buildInfo.getName()}\\\" ${buildInfo.getNumber()}'
+                            String start_build_info = 'conan_build_info --v2 start \\"${buildInfo.getName()}\\" ${buildInfo.getNumber()}'
                             sh start_build_info
                         }
 

@@ -100,7 +100,7 @@ stage("Build + upload") {
     }
 }
 
-node {
+def sub_project_triggers = node {
     try {
         stage("Retrieve and publish build info") {
             docker.image("conanio/gcc8").inside("--net=host") {
@@ -141,14 +141,16 @@ conan_build_info --v2 publish --url ${server.url} --user \"\${CONAN_LOGIN_USERNA
 
                 def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                 def sha1 = scmVars.GIT_COMMIT
-                projects.each {project_id -> 
-                    build(job: 'conan_test_project', propagate: true, parameters: [
-                      [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
-                      [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
-                      [$class: 'StringParameterValue', name: 'organization', value: organization],
-                      [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
-                      [$class: 'StringParameterValue', name: 'sha1',         value: sha1        ],
-                    ])
+                projects.collectEntries {project_id -> 
+                    ["${project_id}": {
+                      build(job: 'conan_test_project', propagate: true, parameters: [
+                        [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
+                        [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
+                        [$class: 'StringParameterValue', name: 'organization', value: organization],
+                        [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
+                        [$class: 'StringParameterValue', name: 'sha1',         value: sha1        ],
+                      ])
+                    }]
                 }
             }
         }
@@ -158,3 +160,4 @@ conan_build_info --v2 publish --url ${server.url} --user \"\${CONAN_LOGIN_USERNA
     }
 }
 
+parallel(sub_project_triggers)

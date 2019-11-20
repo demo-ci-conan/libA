@@ -17,6 +17,8 @@ def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
 
+String reference_revision = null
+
 def shell_quote(word) {
   return "'" + word.replace("'", "'\\''") + "'"
 }
@@ -58,9 +60,12 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                                 name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
                                 version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()
                                 def search_output = "search_output.json"
-                                sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
-                                stash name: "full_reference", includes: search_output
-                                sh "cat search_output.json"
+                                sh("""\
+conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}
+cat search_output.json
+""")
+                                def props = readJSON file: "search_output.json"
+                                reference_revision = props[0]['revision']
                             }
                         }
 
@@ -127,12 +132,7 @@ conan_build_info --v2 publish --url ${server.url} --user \"\${CONAN_LOGIN_USERNA
             def scmVars = checkout scm
 
             stage("Trigger dependents jobs") {
-                unstash "full_reference"
-                sh "cat search_output.json"
-                
-                def props = readJSON file: "search_output.json"
-                def revision = props[0]['revision']
-                def reference = "${name}/${version}@${user_channel}#${revision}"
+                def reference = "${name}/${version}@${user_channel}#${reference_revision}"
                 echo "Full reference: '${reference}'"
 
                 def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]

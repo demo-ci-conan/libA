@@ -70,9 +70,9 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         stage("Create build info") {
                             def buildInfoFilename = "${id}.json"
                             client.run(command: "search *".toString())
-                            // TODO: manage credentials
-                            String create_build_info = "conan_build_info --v2 create --lockfile ${lockfile} --user admin --password password ${buildInfoFilename}"
-                            sh create_build_info
+                            withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+                              sh "conan_build_info --v2 create --lockfile ${lockfile} ${buildInfoFilename}"
+                            }
                             echo "Stash '${id}' -> '${buildInfoFilename}'"
                             stash name: id, includes: "${buildInfoFilename}"
                         }
@@ -111,9 +111,9 @@ node {
                     }
                     last_info = "${id}.json"
                 }
-                // TODO: configure credentials properly
-                String publish_build_info = "conan_build_info --v2 publish --url ${server.url} --user admin --password password mergedbuildinfo.json"
-                sh publish_build_info
+                withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+                  sh "conan_build_info --v2 publish --url ${server.url} mergedbuildinfo.json"
+                }
             }
         }
 

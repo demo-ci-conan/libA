@@ -143,7 +143,7 @@ conan_build_info --v2 publish --url ${server.url} --user \"\${CONAN_LOGIN_USERNA
                 def sha1 = scmVars.GIT_COMMIT
                 projects.collectEntries {project_id -> 
                     ["${project_id}": {
-                      build(job: 'conan_test_project', propagate: true, parameters: [
+                      build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
                         [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
                         [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
                         [$class: 'StringParameterValue', name: 'organization', value: organization],

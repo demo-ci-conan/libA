@@ -17,7 +17,9 @@ def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
 
-def propagate_params = [:]
+String reference_revision = null
+String repository = null
+String sha1 = null
 
 def shell_quote(word) {
   return "'" + word.replace("'", "'\\''") + "'"
@@ -28,18 +30,16 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
         node {
             docker.image(docker_image).inside("--net=host") {
                 def scmVars = checkout scm
-                propagate_params.repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
-                propagate_params.sha1 = scmVars.GIT_COMMIT
+                def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                 withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                     def server = Artifactory.server artifactory_name
                     def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
                     def remoteName = "artifactory-local"
                     def lockfile = "${id}.lock"
                     try {
-                        def buildInfo = Artifactory.newBuildInfo()
-
                         stage("Start build info") {
-                            sh "conan_build_info --v2 start ${shell_quote(buildInfo.getName())} ${shell_quote(buildInfo.getNumber())}"
+                          def buildInfo = Artifactory.newBuildInfo()
+                          sh "conan_build_info --v2 start ${shell_quote(buildInfo.getName())} ${shell_quote(buildInfo.getNumber())}"
                         }
 
                         client.run(command: "config install ${config_url}".toString())
@@ -52,7 +52,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         stage("Get dependencies and create app") {
                             String arguments = "--profile ${profile} --lockfile=${lockfile}"
                             client.run(command: "graph lock . ${arguments}".toString())
-                            client.run(command: "create . ${user_channel} ${arguments} --build ${propagate_params.repository} --ignore-dirty".toString())
+                            client.run(command: "create . ${user_channel} ${arguments} --build ${repository} --ignore-dirty".toString())
                             sh "cat ${lockfile}"
                         }
 
@@ -66,12 +66,12 @@ conan search ${name}/${version}@${user_channel} --revisions --raw --json=${searc
 cat search_output.json
 """)
                                 def props = readJSON file: "search_output.json"
-                                propagate_params.reference_revision = props[0]['revision']
+                                reference_revision = props[0]['revision']
                             }
                         }
 
                         stage("Upload packages") {
-                            String uploadCommand = "upload ${propagate_params.repository} --all -r ${remoteName} --confirm  --force"
+                            String uploadCommand = "upload ${repository} --all -r ${remoteName} --confirm  --force"
                             client.run(command: uploadCommand)
                         }
 
@@ -81,7 +81,13 @@ cat search_output.json
                             withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
                               sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" ${buildInfoFilename}"
                             }
-                            return readJSON(file: buildInfoFilename)
+                            // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
+                            def buildInfo = readJSON(file: buildInfoFilename)
+                            buildInfo['name'] = buildInfo['name'].replace('\\:', ':')
+
+                            buildInfo['vcs'] = [[revision: scmVars.GIT_COMMIT, url: scmVars.GIT_URL]]
+
+                            return buildInfo
                         }
                     }
                     finally {
@@ -120,14 +126,13 @@ pipeline {
             def server = Artifactory.server artifactory_name
               def last_info = ""
               docker_runs.each { id, buildInfo ->
-                // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
-                buildInfo['name'] = buildInfo['name'].replace('\\:', ':')
-
-                  writeJSON file: "${id}.json", json: buildInfo
-                  if (last_info != "") {
-                    sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
-                  }
+                writeJSON file: "${id}.json", json: buildInfo
+                if (last_info != "") {
+                  sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
+                }
                 last_info = "${id}.json"
+                sha1 = buildInfo['vcs'][0]['revision']
+                repository = buildInfo['vcs'][0]['url'].tokenize('/')[3].split("\\.")[0]
               }
             withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
               sh """\
@@ -150,10 +155,10 @@ pipeline {
       steps {
         script {
           stage("Trigger dependents jobs") {
-            assert propagate_params.reference_revision != null
-            assert propagate_params.repository != null
-            assert propagate_params.sha1 != null
-            def reference = "${name}/${version}@${user_channel}#${propagate_params.reference_revision}"
+            assert reference_revision != null
+            assert repository != null
+            assert sha1 != null
+            def reference = "${name}/${version}@${user_channel}#${reference_revision}"
               echo "Full reference: '${reference}'"
 
               parallel projects.collectEntries {project_id -> 
@@ -162,8 +167,8 @@ pipeline {
                       [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
                       [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
                       [$class: 'StringParameterValue', name: 'organization', value: organization],
-                      [$class: 'StringParameterValue', name: 'repository',   value: propagate_params.repository  ],
-                      [$class: 'StringParameterValue', name: 'sha1',         value: propagate_params.sha1        ],
+                      [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
+                      [$class: 'StringParameterValue', name: 'sha1',         value: sha1        ],
                   ])
                 }]
               }

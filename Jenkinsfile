@@ -17,6 +17,10 @@ def user_channel = "demo/testing"
 def config_url = "https://github.com/demo-ci-conan/settings.git"
 def projects = ["App1/0.0@${user_channel}", "App2/0.0@${user_channel}", ]  // TODO: Get list dinamically
 
+def shell_quote(word) {
+  return "'" + word.replace("'", "'\\''") + "'"
+}
+
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
     return {
         node {
@@ -33,9 +37,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         def buildInfo = Artifactory.newBuildInfo()
 
                         stage("Start build info") {
-                            def buildName = buildInfo.getName().replace(':', '-')
-                            String start_build_info = "conan_build_info --v2 start \"${buildName}\" ${buildInfo.getNumber()}"
-                            sh start_build_info
+                            sh "conan_build_info --v2 start ${shell_quote(buildInfo.getName())} ${shell_quote(buildInfo.getNumber())}"
                         }
 
                         client.run(command: "config install ${config_url}".toString())

@@ -32,9 +32,9 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                     try {
 
                         def buildInfo = Artifactory.newBuildInfo()
-
-                        sh "conan_build_info --v2 start \"${buildInfo.getName()}\"" ${buildInfo.getNumber()}".replaceAll(/\\"/, '"')
-
+                        def command = "conan_build_info --v2 start \"${buildInfo.getName()}\" ${buildInfo.getNumber()}"
+                        def command2 = command.replaceAll('\\)',' ')
+                        sh "${command2}"
                         client.run(command: "config install ${config_url}".toString())
                         client.remote.add server: server, repo: artifactory_repo, remoteName: remoteName, force: true
 

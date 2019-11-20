@@ -1,5 +1,5 @@
 def artifactory_name = "Artifactory Docker"
-def artifactory_repo = "conan-local"
+def artifactory_repo = "hackathonv5-build"
 def docker_runs = [:]  // [id] = [docker_image, profile]
 
 docker_runs["conanio-gcc8"] = ["conanio/gcc8", "linux_gcc_8_x86_64"]

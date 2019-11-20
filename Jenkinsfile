@@ -25,7 +25,6 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                 def repo_name = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                 withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                     def server = Artifactory.server artifactory_name
-                    def client = Artifactory.newConanClient(userHome: "${env.WORKSPACE}/conan_cache".toString())
                     def remoteName = "artifactory-local"
                     def lockfile = "${id}.lock"
                     try {
@@ -37,8 +36,10 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             sh start_build_info
                         }
 
-                        client.run(command: "config install ${config_url}".toString())
-                        client.remote.add server: server, repo: artifactory_repo, remoteName: remoteName, force: true
+                        sh("""\
+conan config install ${config_url}
+conan remote add --force ${remoteName} ${server.url}
+""")
 
                         stage("${id}") {
                             echo 'Running in ${docker_image}'
@@ -46,9 +47,11 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
 
                         stage("Get dependencies and create app") {
                             String arguments = "--profile ${profile} --lockfile=${lockfile}"
-                            client.run(command: "graph lock . ${arguments}".toString())
-                            client.run(command: "create . ${user_channel} ${arguments} --build ${repo_name} --ignore-dirty".toString())
-                            sh "cat ${lockfile}"
+                            sh("""\
+conan graph lock . ${arguments}
+conan create . ${user_channel} ${arguments} --build ${repo_name} --ignore-dirty
+cat ${lockfile}
+""")
                         }
 
                         stage("Calculate full reference") {
@@ -56,20 +59,21 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                                 name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
                                 version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()
                                 def search_output = "search_output.json"
-                                sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
+                                sh("""\
+conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}
+cat ${search_output}
+""")
                                 stash name: "full_reference", includes: search_output
-                                sh "cat search_output.json"
                             }
                         }
 
                         stage("Upload packages") {
-                            String uploadCommand = "upload ${repo_name}* --all -r ${remoteName} --confirm  --force"
-                            client.run(command: uploadCommand)
+                            sh("conan upload ${repo_name}* --all -r ${remoteName} --confirm  --force")
                         }
 
                         stage("Create build info") {
                             def buildInfoFilename = "${id}.json"
-                            client.run(command: "search *".toString())
+                            sh('conan search \\*')
                             withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
                               sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" ${buildInfoFilename}"
                             }

@@ -50,7 +50,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         echo("Get dependencies and create app")
                         String arguments = "--profile ${profile} --lockfile=${lockfile}"
                         client.run(command: "graph lock . ${arguments}".toString())
-                        client.run(command: "create . ${user_channel} ${arguments} --build ${repository} --ignore-dirty".toString())
+                        client.run(command: "create . ${user_channel} ${arguments} --build missing --ignore-dirty".toString())
                         sh "cat ${shell_quote(lockfile)}"
 
                         name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()

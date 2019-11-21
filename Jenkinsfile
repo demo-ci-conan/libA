@@ -52,19 +52,21 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         client.run(command: "create . ${user_channel} ${arguments} --build ${repository} --ignore-dirty".toString())
                         sh "cat ${shell_quote(lockfile)}"
 
+                        name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
+                        version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()
+
+                        withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+                          sh "curl --user \"\${CONAN_LOGIN_USERNAME}\":\"\${CONAN_PASSWORD}\" --header 'X-Checksum-Sha1:'${shell_quote(sha1(file: lockfile))} --header 'Content-Type: application/json' ${shell_quote(server.url)}/hackathonv5-metadata/${shell_quote(name)}/${shell_quote(version)}@${shell_quote(user_channel)}/${shell_quote(profile)}/conan.lock --upload-file ${shell_quote(lockfile)}"
+                        }
+
                         if (id=="conanio-gcc8") {// TODO fix this
                             stage("Calculate full reference") {
-                                name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
-                                version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()
                                 def search_output = "search_output.json"
                                 sh("""\
 conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}
 cat search_output.json
 """)
                                 stash name: 'full_reference', includes: 'search_output.json'
-                                withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
-                                  sh "curl --user \"\${CONAN_LOGIN_USERNAME}\":\"\${CONAN_PASSWORD}\" --header 'X-Checksum-Sha1:'${shell_quote(sha1(file: lockfile))} --header 'Content-Type: application/json' ${shell_quote(server.url)}/hackathonv5-metadata/${shell_quote(name)}/${shell_quote(version)}@${shell_quote(user_channel)}/${shell_quote(profile)}/conan.lock --upload-file ${shell_quote(lockfile)}"
-                                }
                             }
                         }
 

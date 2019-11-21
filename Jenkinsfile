@@ -61,14 +61,13 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                         }
 
                         if (id=="conanio-gcc8") {// TODO fix this
-                            stage("Calculate full reference") {
-                                def search_output = "search_output.json"
-                                sh("""\
+                            echo("Calculate full reference")
+                            def search_output = "search_output.json"
+                            sh("""\
 conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}
 cat search_output.json
 """)
-                                stash name: 'full_reference', includes: 'search_output.json'
-                            }
+                            stash name: 'full_reference', includes: 'search_output.json'
                         }
 
                         echo("Upload packages")

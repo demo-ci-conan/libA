@@ -66,6 +66,12 @@ conan search ${name}/${version}@${user_channel} --revisions --raw --json=${searc
 cat search_output.json
 """)
                                 stash name: 'full_reference', includes: 'search_output.json'
+                                httpRequest(
+                                    url: "${server.url}/hackathonv5-metadata/${name}/${version}@${user_channel}/conan.lock",
+                                    httpMode: 'PUT',
+                                    authentication: 'hack-tt-artifactory',
+                                    uploadFile: lockfile,
+                                )
                             }
                         }
 

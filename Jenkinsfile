@@ -27,6 +27,7 @@ def shell_quote(word) {
 
 def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, user_channel, config_url) {
     return {
+      stage(id) {
         node {
             docker.image(docker_image).inside("--net=host") {
                 def scmVars = checkout scm
@@ -93,6 +94,7 @@ cat search_output.json
                 }
             }
         }
+      }
     }
 }
 

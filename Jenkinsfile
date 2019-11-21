@@ -53,7 +53,7 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                             String arguments = "--profile ${profile} --lockfile=${lockfile}"
                             client.run(command: "graph lock . ${arguments}".toString())
                             client.run(command: "create . ${user_channel} ${arguments} --build ${repository} --ignore-dirty".toString())
-                            sh "cat ${lockfile}"
+                            sh "cat ${shell_quote(lockfile)}"
                         }
 
                         stage("Calculate full reference") {
@@ -70,6 +70,8 @@ cat search_output.json
                                     url: "${server.url}/hackathonv5-metadata/${name}/${version}@${user_channel}/conan.lock",
                                     httpMode: 'PUT',
                                     authentication: 'hack-tt-artifactory',
+                                    consoleLogResponseBody: true,
+                                    contentType: 'APPLICATION_OCTETSTREAM',
                                     uploadFile: lockfile,
                                     customHeaders: [
                                       [name: 'X-Checksum-Sha1', value: sha1(file: lockfile)],

@@ -66,17 +66,9 @@ conan search ${name}/${version}@${user_channel} --revisions --raw --json=${searc
 cat search_output.json
 """)
                                 stash name: 'full_reference', includes: 'search_output.json'
-                                httpRequest(
-                                    url: "${server.url}/hackathonv5-metadata/${name}/${version}@${user_channel}/conan.lock",
-                                    httpMode: 'PUT',
-                                    authentication: 'hack-tt-artifactory',
-                                    consoleLogResponseBody: true,
-                                    contentType: 'APPLICATION_OCTETSTREAM',
-                                    uploadFile: lockfile,
-                                    customHeaders: [
-                                      [name: 'X-Checksum-Sha1', value: sha1(file: lockfile)],
-                                    ],
-                                )
+                                withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+                                  sh "curl --user \"\${CONAN_LOGIN_USERNAME}\":\"\${CONAN_PASSWORD}\" --header 'X-Checksum-Sha1:'${shell_quote(sha1(file: lockfile))} --header 'Content-Type: application/json' ${shell_quote(server.url)}/hackathonv5-metadata/${shell_quote(name)}/${shell_quote(version)}@${shell_quote(user_channel)}/${shell_quote(profile)}/conan.lock --upload-file ${shell_quote(lockfile)}"
+                                }
                             }
                         }
 

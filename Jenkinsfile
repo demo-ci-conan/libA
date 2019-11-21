@@ -71,6 +71,9 @@ cat search_output.json
                                     httpMode: 'PUT',
                                     authentication: 'hack-tt-artifactory',
                                     uploadFile: lockfile,
+                                    customHeaders: [
+                                      [name: 'X-Checksum-Sha1', value: sha1(file: lockfile)],
+                                    ],
                                 )
                             }
                         }

@@ -3,14 +3,14 @@ def artifactory_repo = "hackathonv5-build"
 def docker_runs = [:]  // [id] = [docker_image, profile]
 
 docker_runs["conanio-gcc8"] = ["conanio/gcc8", "linux_gcc_8_x86_64"]
-docker_runs["conanio-gcc7"] = ["conanio/gcc7", "linux_gcc_7_x86_64"]
+// docker_runs["conanio-gcc7"] = ["conanio/gcc7", "linux_gcc_7_x86_64"]
 // Conan arm docker images are not updated so we can not use conan_build_info --v
 // docker_runs["conanio-gcc8-armv7hf"] = ["conanio/gcc8-armv7hf", "linux_gcc_8_armv7hf"]
 // docker_runs["conanio-gcc7-armv7hf"] = ["conanio/gcc7-armv7hf", "linux_gcc_7_armv7hf"]
 
 // temporary
-docker_runs["conanio-gcc8_temp"] = ["conanio/gcc8", "conanio-gcc8"]	
-docker_runs["conanio-gcc7_temp"] = ["conanio/gcc7", "conanio-gcc7"]
+// docker_runs["conanio-gcc8_temp"] = ["conanio/gcc8", "conanio-gcc8"]	
+// docker_runs["conanio-gcc7_temp"] = ["conanio/gcc7", "conanio-gcc7"]
 
 ArrayList line_split(String text) {
   return text.split('\\r?\\n').findAll{it.size() > 0} as ArrayList

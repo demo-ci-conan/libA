@@ -86,18 +86,19 @@ cat search_output.json
                         withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
                           sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" ${buildInfoFilename}"
                           sh "cat ${buildInfoFilename}"
+                          stash name: id, includes: "${buildInfoFilename}"
                         }
-                        // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
-                        def buildInfo = readJSON(file: buildInfoFilename)
-                        buildInfo['name'] = buildInfo['name'].replace('\\:', ':')
-                        buildInfo['modules'][0]['artifacts'].add([
-                          sha1: lockfile_sha1,
-                          name: lockfile_url.tokenize('/')[-1],
-                        ])
+                        // // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
+                        // def buildInfo = readJSON(file: buildInfoFilename)
+                        // buildInfo['name'] = buildInfo['name'].replace('\\:', ':')
+                        // buildInfo['modules'][0]['artifacts'].add([
+                        //   sha1: lockfile_sha1,
+                        //   name: lockfile_url.tokenize('/')[-1],
+                        // ])
 
-                        buildInfo['vcs'] = [[revision: scmVars.GIT_COMMIT, url: scmVars.GIT_URL]]
+                        // buildInfo['vcs'] = [[revision: scmVars.GIT_COMMIT, url: scmVars.GIT_URL]]
 
-                        return buildInfo
+                        // return buildInfo
                     }
                     finally {
                         deleteDir()
@@ -137,7 +138,9 @@ pipeline {
             def server = Artifactory.server artifactory_name
               def last_info = ""
               docker_runs.each { id, buildInfo ->
-                writeJSON file: "${id}.json", json: buildInfo
+                unstash id
+                sh "cat ${id}.json"
+                //writeJSON file: "${id}.json", json: buildInfo
                 if (last_info != "") {
                   sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
                 }

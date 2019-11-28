@@ -148,8 +148,8 @@ pipeline {
                   sh "cp ${id}.json mergedbuildinfo.json"
                 }
                 last_info = "${id}.json"
-                sha1 = buildInfo['vcs'][0]['revision']
-                repository = buildInfo['vcs'][0]['url'].tokenize('/')[3].split("\\.")[0]
+                //sha1 = buildInfo['vcs'][0]['revision']
+                //repository = buildInfo['vcs'][0]['url'].tokenize('/')[3].split("\\.")[0]
               }
               // def buildInfo = readJSON(file: 'mergedbuildinfo.json')
               // buildInfo['agent'] = [

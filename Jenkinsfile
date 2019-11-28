@@ -148,20 +148,20 @@ pipeline {
                 sha1 = buildInfo['vcs'][0]['revision']
                 repository = buildInfo['vcs'][0]['url'].tokenize('/')[3].split("\\.")[0]
               }
-              def buildInfo = readJSON(file: 'mergedbuildinfo.json')
-              buildInfo['agent'] = [
-                  name: 'Jenkins',
-                  version: Jenkins.version as String,
-                ]
-              buildInfo['url'] = BUILD_URL
-              def started = new Date(currentBuild.startTimeInMillis)
-              buildInfo['started'] = started.format('yyyy-MM-dd\'T\'HH:mm:ss.SSSXXX')
-              buildInfo['durationMillis'] = currentBuild.duration
-              def userCauses = currentBuild.buildCauses.find { cause ->
-                cause._class.contains('UserIdCause')
-              }
-              buildInfo['principal'] = userCauses != null ? userCauses.userId : 'anonymous'
-              writeJSON(file: 'mergedbuildinfo.json', json: buildInfo)
+              // def buildInfo = readJSON(file: 'mergedbuildinfo.json')
+              // buildInfo['agent'] = [
+              //     name: 'Jenkins',
+              //     version: Jenkins.version as String,
+              //   ]
+              // buildInfo['url'] = BUILD_URL
+              // def started = new Date(currentBuild.startTimeInMillis)
+              // buildInfo['started'] = started.format('yyyy-MM-dd\'T\'HH:mm:ss.SSSXXX')
+              // buildInfo['durationMillis'] = currentBuild.duration
+              // def userCauses = currentBuild.buildCauses.find { cause ->
+              //   cause._class.contains('UserIdCause')
+              // }
+              // buildInfo['principal'] = userCauses != null ? userCauses.userId : 'anonymous'
+              // writeJSON(file: 'mergedbuildinfo.json', json: buildInfo)
             unstash 'full_reference'
             def props = readJSON file: "search_output.json"
             reference_revision = props[0]['revision']

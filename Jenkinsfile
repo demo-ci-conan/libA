@@ -85,6 +85,7 @@ cat search_output.json
                         client.run(command: "search *".toString())
                         withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
                           sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" ${buildInfoFilename}"
+                          sh "cat ${buildInfoFilename}"
                         }
                         // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
                         def buildInfo = readJSON(file: buildInfoFilename)

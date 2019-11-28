@@ -141,6 +141,9 @@ pipeline {
                 if (last_info != "") {
                   sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
                 }
+                else {
+                  sh "cp ${id}.json mergedbuildinfo.json"
+                }
                 last_info = "${id}.json"
                 sha1 = buildInfo['vcs'][0]['revision']
                 repository = buildInfo['vcs'][0]['url'].tokenize('/')[3].split("\\.")[0]

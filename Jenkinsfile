@@ -45,8 +45,8 @@ def get_stages(id, docker_image, artifactory_name, artifactory_repo, profile, us
                     try {
                         echo("Start build info")
                         def artifactoryBuildInfo = Artifactory.newBuildInfo()
-                        //sh "conan_build_info --v2 start \"${artifactoryBuildInfo.getName()}\" \"${artifactoryBuildInfo.getNumber()}\""
-                        sh label: 'starting build info', script: 'conan_build_info --v2 start \"${artifactoryBuildInfo.getName()}\" \"${artifactoryBuildInfo.getNumber()}\"'
+                        sh "conan_build_info --v2 start \"${artifactoryBuildInfo.getName()}\" \"${artifactoryBuildInfo.getNumber()}\""
+
                         client.run(command: "config install ${config_url}".toString())
                         client.remote.add server: server, repo: artifactory_repo, remoteName: remoteName, force: true
 

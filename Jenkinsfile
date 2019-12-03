@@ -24,11 +24,11 @@ node {
             def buildInfo = Artifactory.newBuildInfo()
             //buildInfo.name = 'test:features:test'
             //buildInfo.number = 'v1.2.10'
-            String command = "upload * --all -r ${serverName} --confirm"
+            //String command = "upload * --all -r ${serverName} --confirm"
             
-            def b = client.run(command: command, buildInfo: buildInfo)
+            //def b = client.run(command: command, buildInfo: buildInfo)
             
-            server.publishBuildInfo b
+            server.publishBuildInfo buildInfo
         }
       }
     }

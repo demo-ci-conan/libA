@@ -70,7 +70,8 @@ cat search_output.json
 
                         echo("Upload packages")
                         client.run(command: "upload '*' --all -r ${remoteName} --confirm  --force".toString())
-
+                        def b = client.run(command: command, buildInfo: buildInfo)
+                        server.publishBuildInfo b
                         echo("Create build info")
                         def buildInfoFilename = "${id}.json"
                         client.run(command: "search *".toString())
@@ -126,8 +127,7 @@ pipeline {
         script {
           docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
             def server = Artifactory.server artifactory_name
-            def b = client.run(command: command, buildInfo: buildInfo)
-            server.publishBuildInfo b
+
 
             def last_info = ""
             unstash 'full_reference'

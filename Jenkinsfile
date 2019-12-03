@@ -75,11 +75,11 @@ cat search_output.json
                         echo("Create build info")
                         def buildInfoFilename = "${id}.json"
                         client.run(command: "search *".toString())
-                        withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
-                          sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" ${buildInfoFilename}"
-                          sh "cat ${buildInfoFilename}"
-                          stash name: id, includes: "${buildInfoFilename}"
-                        }
+                        //withCredentials([usernamePassword(credentialsId: 'hack-tt-artifactory', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+                          //sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" ${buildInfoFilename}"
+                          //sh "cat ${buildInfoFilename}"
+                          //stash name: id, includes: "${buildInfoFilename}"
+                        //}
                         // // Work around conan_build_info wrongly "escaping" colons (:) with backslashes in the build name
                         // def buildInfo = readJSON(file: buildInfoFilename)
                         // buildInfo['name'] = buildInfo['name'].replace('\\:', ':')
@@ -127,36 +127,12 @@ pipeline {
         script {
           docker.image("conanio/gcc8").inside("--net=docker_jenkins_artifactory") {
             sh "pip install git+git://github.com/czoido/conan.git@test_build_info_jenkins"
+
             def server = Artifactory.server artifactory_name
-              def last_info = ""
-              docker_runs.each { id, buildInfo ->
-                unstash id
-                sh "cat ${id}.json"
-                //writeJSON file: "${id}.json", json: buildInfo
-                if (last_info != "") {
-                  sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
-                }
-                else {
-                  sh "cp ${id}.json mergedbuildinfo.json"
-                }
-                last_info = "${id}.json"
-                //sha1 = buildInfo['vcs'][0]['revision']
-                //repository = buildInfo['vcs'][0]['url'].tokenize('/')[3].split("\\.")[0]
-              }
-              // def buildInfo = readJSON(file: 'mergedbuildinfo.json')
-              // buildInfo['agent'] = [
-              //     name: 'Jenkins',
-              //     version: Jenkins.version as String,
-              //   ]
-              // buildInfo['url'] = BUILD_URL
-              // def started = new Date(currentBuild.startTimeInMillis)
-              // buildInfo['started'] = started.format('yyyy-MM-dd\'T\'HH:mm:ss.SSSXXX')
-              // buildInfo['durationMillis'] = currentBuild.duration
-              // def userCauses = currentBuild.buildCauses.find { cause ->
-              //   cause._class.contains('UserIdCause')
-              // }
-              // buildInfo['principal'] = userCauses != null ? userCauses.userId : 'anonymous'
-              // writeJSON(file: 'mergedbuildinfo.json', json: buildInfo)
+            def b = client.run(command: command, buildInfo: buildInfo)
+            server.publishBuildInfo b
+
+            def last_info = ""
             unstash 'full_reference'
             def props = readJSON file: "search_output.json"
             reference_revision = props[0]['revision']

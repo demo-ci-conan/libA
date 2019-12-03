@@ -5,7 +5,10 @@ def repo_branch = "release/1.2.11"
 
 node {
     docker.image("conanio/gcc8").inside("--net=host") {    
+      withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
+        
         def server = Artifactory.server artifactory_name
+        sh "cat ${env.WORKSPACE}/conan_cache/artifacts.properties"
         def client = Artifactory.newConanClient()
         def serverName = client.remote.add server: server, repo: artifactory_repo
         stage("Get recipe")
@@ -28,5 +31,7 @@ node {
             
             server.publishBuildInfo b
         }
+        deleteDir()
+      }
     }
 }

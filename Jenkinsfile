@@ -20,8 +20,8 @@ node {
         stage("Upload packages")
         {
             def buildInfo = Artifactory.newBuildInfo()
-            buildInfo.name = 'test:features:test'
-            buildInfo.number = 'v1.2.10'
+            //buildInfo.name = 'test:features:test'
+            //buildInfo.number = 'v1.2.10'
             String command = "upload * --all -r ${serverName} --confirm"
             
             def b = client.run(command: command, buildInfo: buildInfo)
